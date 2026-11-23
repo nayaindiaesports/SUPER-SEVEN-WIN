@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SUPER SEVEN WIN</title>
+<style>
+:root{--bg:#eceaf4;--ink:#1d1b3a;--card:#fff;--gold:#f2b705;--mu:#6b6a85;--red:#e5383b;--green:#1f9d55;--violet:#8e44ad}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--ink)}
+header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--ink);color:#fff}
+h1{font-size:20px;margin:0;letter-spacing:1px;color:var(--gold)}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:#fff}
+button,nav a{font:inherit;border:0;border-radius:8px;padding:9px 14px;background:#e1def0;color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none}
+nav a.on,button.p{background:var(--gold);font-weight:700}
+button:focus-visible,input:focus-visible{outline:3px solid var(--violet)}
+main{max-width:720px;margin:auto;padding:12px}
+.card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #d6d3e6}
+input{width:100%;padding:11px;margin:6px 0;border-radius:8px;border:1px solid #b9b6d1;font:inherit}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.dot{display:inline-block;width:24px;height:24px;border-radius:50%;margin:2px}
+.red{background:var(--red)}.green{background:var(--green)}.violet{background:var(--violet)}
+.big{font-size:64px;font-weight:700;text-align:center;line-height:1}
+.pick{color:#fff;font-weight:700;padding:16px 0}.pick.sel{outline:4px solid var(--gold)}
+table{width:100%;border-collapse:collapse}td{padding:7px 4px;border-bottom:1px solid #e3e1ef}
+.mu{color:var(--mu);font-size:14px}.hide{display:none}
+</style></head><body>
+
+<header><h1>SUPER SEVEN WIN</h1><span id="bal" class="hide"></span></header>
+
+<main id="auth">
+ <div class="card">
+  <div class="row"><button id="mL" class="p">Login</button><button id="mR">Register</button><button id="mF">Forgot</button></div>
+  <input id="nm" placeholder="Display name" class="hide">
+  <input id="em" type="email" placeholder="Email">
+  <input id="pw" type="password" placeholder="Password (min 6 characters)">
+  <button id="go" class="p" style="width:100%">Login</button>
+  <p id="msg" class="mu"></p>
+ </div>
+ <p class="mu">Play with virtual points only. Points have no cash value and cannot be withdrawn.</p>
+</main>
+
+<div id="app" class="hide">
+ <nav id="nav"></nav>
+ <main>
+  <section id="home">
+   <div class="card"><h2>Pick a color. Beat the clock.</h2>
+    <p>Every 30 seconds a new round ends with Red, Green or Violet. Back the right color to win points.</p></div>
+   <div class="card"><b>Recent results</b><div class="rec"></div></div>
+  </section>
+
+  <section id="game" class="hide">
+   <div class="card"><div class="mu" id="rd" style="text-align:center"></div>
+    <div class="big" id="t">30</div><div class="mu" id="st" style="text-align:center"></div></div>
+   <div class="card">
+    <div class="row">
+     <button class="pick red" data-c="red">Red<br>x1.9</button>
+     <button class="pick violet" data-c="violet">Violet<br>x4.5</button>
+     <button class="pick green" data-c="green">Green<br>x1.9</button>
+    </div>
+    <input id="amt" type="number" min="10" value="10" aria-label="Points to bet">
+    <button id="bet" class="p" style="width:100%">Place bet</button>
+    <p id="bm" class="mu"></p>
+   </div>
+   <div class="card"><b>Round results</b><div class="rec"></div></div>
+  </section>
+
+  <section id="history" class="hide"><div class="card"><b>Your bets</b><table id="hist"></table></div></section>
+
+  <section id="wallet" class="hide">
+   <div class="card"><div class="mu">Points balance</div><div class="big" id="wb">0</div>
+    <button id="bonus" class="p" style="width:100%;margin-top:12px">Claim free 100 points</button>
+    <p class="mu">Free bonus can be claimed once every 20 hours.</p></div>
+   <div class="card"><b>Transactions</b><p class="mu">Every bet and payout appears under History.</p></div>
+  </section>
+
+  <section id="board" class="hide"><div class="card"><b>Top players</b><table id="lb"></table></div></section>
+
+  <section id="profile" class="hide"><div class="card"><h3 id="pn"></h3><p id="pe" class="mu"></p><p id="ps" class="mu"></p>
+   <button id="out">Log out</button></div></section>
+
+  <section id="notes" class="hide"><div class="card"><b>Notifications</b><div id="nl"></div></div></section>
+
+  <section id="info" class="hide">
+   <div class="card"><h3>About</h3><p>SUPER SEVEN WIN is a free color prediction game played with virtual points.</p></div>
+   <div class="card"><h3>FAQ</h3><p><b>Can I withdraw points?</b> No. Points have no cash value.</p><p><b>When do bets close?</b> 5 seconds before a round ends.</p></div>
+   <div class="card"><h3>Privacy Policy</h3><p>We store your email, display name, bets and points balance to run the game. Edit this text before launch.</p></div>
+   <div class="card"><h3>Terms and Conditions</h3><p>For entertainment only. Players must be 18 or older. Points are virtual and cannot be bought, sold or exchanged. Edit this text before launch.</p></div>
+  </section>
+ </main>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,setDoc,updateDoc,collection,query,where,orderBy,limit,onSnapshot,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 1. Paste your Firebase web app config here
+const cfg={apiKey:"AIzaSyAz6WmwoIvoQVC9cQyN3AYIUvm8536ZeaI",authDomain:"super-seven-win.firebaseapp.com",projectId:"super-seven-win",storageBucket:"super-seven-win.firebasestorage.app",messagingSenderId:"1019069720233",appId:"1:1019069720233:web:59e61111c3300929a2ebb8"};
+const auth=getAuth(initializeApp(cfg)),db=getFirestore(auth.app);
+const $=i=>document.getElementById(i);
+let me=null,bal=0,active=true,choice=null,mode='login',subs=[];
+
+// auth form
+const setMode=m=>{mode=m;$('nm').classList.toggle('hide',m!=='reg');$('pw').classList.toggle('hide',m==='forgot');
+ $('go').textContent={login:'Login',reg:'Create account',forgot:'Send reset email'}[m];
+ ['L','R','F'].forEach(k=>$('m'+k).classList.toggle('p',k===({login:'L',reg:'R',forgot:'F'})[m]))};
+$('mL').onclick=()=>setMode('login');$('mR').onclick=()=>setMode('reg');$('mF').onclick=()=>setMode('forgot');
+$('go').onclick=async()=>{const e=$('em').value.trim(),p=$('pw').value;$('msg').textContent='';
+ try{
+  if(mode==='login')await signInWithEmailAndPassword(auth,e,p);
+  else if(mode==='reg'){const c=await createUserWithEmailAndPassword(auth,e,p);
+   await setDoc(doc(db,'users',c.user.uid),{name:($('nm').value.trim()||e.split('@')[0]).slice(0,30),balance:1000,status:'active',lastBonus:serverTimestamp()});}
+  else{await sendPasswordResetEmail(auth,e);$('msg').textContent='Reset email sent. Check your inbox.';}
+ }catch(x){$('msg').textContent=x.message}};
+$('out').onclick=()=>signOut(auth);
+
+// navigation
+const tabs=[['home','Home'],['game','Play'],['history','History'],['wallet','Wallet'],['board','Leaderboard'],['profile','Profile'],['notes','Alerts'],['info','About']];
+$('nav').innerHTML=tabs.map(t=>`<a href="#${t[0]}" data-t="${t[0]}">${t[1]}</a>`).join('');
+const show=()=>{const h=(location.hash||'#home').slice(1);
+ tabs.forEach(t=>{$(t[0]).classList.toggle('hide',t[0]!==h)});
+ document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===h))};
+addEventListener('hashchange',show);
+
+// live data
+const rec=r=>document.querySelectorAll('.rec').forEach(e=>e.innerHTML=r.map(x=>`<span class="dot ${x}" title="${x}"></span>`).join('')||'<span class="mu">No rounds yet</span>');
+const listen=(q,fn)=>subs.push(onSnapshot(q,fn,e=>console.warn(e.message)));
+
+onAuthStateChanged(auth,u=>{
+ subs.forEach(f=>f());subs=[];me=u;
+ $('auth').classList.toggle('hide',!!u);$('app').classList.toggle('hide',!u);$('bal').classList.toggle('hide',!u);
+ if(!u)return;show();
+ $('pe').textContent=u.email;
+ listen(doc(db,'users',u.uid),d=>{const x=d.data()||{};bal=x.balance||0;active=x.status!=='blocked';
+  $('bal').textContent=bal+' pts';$('wb').textContent=bal;$('pn').textContent=x.name||'';$('ps').textContent='Account: '+(x.status||'active')});
+ listen(query(collection(db,'rounds'),orderBy('round','desc'),limit(15)),s=>rec(s.docs.map(d=>d.data().result)));
+ listen(query(collection(db,'bets'),where('uid','==',u.uid)),s=>{
+  const b=s.docs.map(d=>d.data()).sort((a,c)=>c.round-a.round).slice(0,50);
+  $('hist').innerHTML=b.map(x=>`<tr><td>#${x.round}</td><td><span class="dot ${x.choice}"></span></td><td>${x.amount}</td><td>${x.status==='won'?'Won +'+x.payout:x.status==='lost'?'Lost':'Open'}</td></tr>`).join('')||'<tr><td class="mu">No bets yet</td></tr>'});
+ listen(query(collection(db,'users'),orderBy('balance','desc'),limit(10)),s=>{
+  $('lb').innerHTML=s.docs.map((d,i)=>`<tr><td>${i+1}</td><td>${esc(d.data().name)}</td><td>${d.data().balance}</td></tr>`).join('')});
+ listen(query(collection(db,'notifications'),orderBy('at','desc'),limit(20)),s=>{
+  $('nl').innerHTML=s.docs.map(d=>`<p><b>${esc(d.data().title)}</b><br>${esc(d.data().body||'')}</p>`).join('')||'<p class="mu">Nothing new</p>'});
+});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// game
+document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{choice=b.dataset.c;document.querySelectorAll('.pick').forEach(x=>x.classList.toggle('sel',x===b))});
+setInterval(()=>{const n=Date.now(),r=Math.floor(n/30000),left=30-Math.floor((n%30000)/1000);
+ $('rd').textContent='Round '+r;$('t').textContent=left;$('st').textContent=left>5?'Betting open':'Betting closed. Result is coming.'},250);
+$('bet').onclick=async()=>{const m=$('bm'),a=parseInt($('amt').value,10),n=Date.now(),r=Math.floor(n/30000);
+ if(!choice)return m.textContent='Pick Red, Violet or Green first.';
+ if(!(a>=10)||a>bal)return m.textContent='Enter 10 points or more, up to your balance.';
+ if(n%30000>=25000)return m.textContent='Betting is closed for this round. Wait for the next one.';
+ if(!active)return m.textContent='Your account is blocked.';
+ try{const b=writeBatch(db);
+  b.set(doc(db,'bets',r+'_'+me.uid),{uid:me.uid,round:r,choice,amount:a,status:'open',payout:0,createdAt:serverTimestamp()});
+  b.update(doc(db,'users',me.uid),{balance:bal-a});
+  await b.commit();m.textContent='Bet placed on round '+r+'.';
+ }catch(e){m.textContent='Bet not accepted. You can place one bet per round.'}};
+
+// free bonus
+$('bonus').onclick=async()=>{try{await updateDoc(doc(db,'users',me.uid),{balance:bal+100,lastBonus:serverTimestamp()});alert('100 points added')}
+ catch(e){alert('Bonus is available once every 20 hours.')}};
+</script>
+</body></html>
