@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SUPER SEVEN WIN Admin</title>
+<style>
+:root{--bg:#eceaf4;--ink:#1d1b3a;--gold:#f2b705;--mu:#6b6a85}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,serif;background:var(--bg);color:var(--ink)}
+header{padding:12px 16px;background:var(--ink);color:var(--gold);font-weight:700;letter-spacing:1px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:#fff}
+button,nav a{font:inherit;border:0;border-radius:8px;padding:8px 12px;background:#e1def0;color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none}
+nav a.on,button.p{background:var(--gold);font-weight:700}
+main{max-width:900px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #d6d3e6;overflow-x:auto}
+input,textarea{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #b9b6d1;font:inherit}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}.stats b{font-size:28px;display:block}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 4px;border-bottom:1px solid #e3e1ef;text-align:left}
+.dot{display:inline-block;width:18px;height:18px;border-radius:50%}
+.red{background:#e5383b}.green{background:#1f9d55}.violet{background:#8e44ad}
+.mu{color:var(--mu);font-size:14px}.hide{display:none}
+</style></head><body>
+<header>SUPER SEVEN WIN / Admin</header>
+
+<main id="login"><div class="card">
+ <input id="em" type="email" placeholder="Admin email"><input id="pw" type="password" placeholder="Password">
+ <button id="go" class="p" style="width:100%">Admin login</button><p id="msg" class="mu"></p></div></main>
+
+<div id="app" class="hide">
+ <nav id="nav"></nav>
+ <main>
+  <section id="dash"><div class="card stats">
+   <div><b id="cu">-</b>Total users</div><div><b id="ca">-</b>Active users</div><div><b id="cr">-</b>Game rounds</div></div></section>
+
+  <section id="users" class="hide"><div class="card"><table id="ut"></table></div></section>
+
+  <section id="game" class="hide"><div class="card">
+   <p>Status: <b id="gs">Stopped</b> | Current round: <b id="cur"></b> | Next result in <b id="left"></b>s</p>
+   <button id="tog" class="p">Start rounds</button>
+   <p class="mu">Keep this tab open while the game runs. It picks each result when the 30-second timer ends and pays winners. Red/Green 45% each, Violet 10%. Payouts x1.9 and x4.5.</p></div></section>
+
+  <section id="results" class="hide"><div class="card"><table id="rt"></table></div></section>
+
+  <section id="points" class="hide"><div class="card"><p>Use +1000 / -1000 on the Users tab to adjust any player's points.</p></div></section>
+
+  <section id="notes" class="hide"><div class="card">
+   <input id="nt" placeholder="Title"><textarea id="nb" rows="3" placeholder="Message"></textarea>
+   <button id="np" class="p">Send notification</button><p id="nm" class="mu"></p></div></section>
+ </main>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,collection,query,where,orderBy,limit,getDocs,getCountFromServer,writeBatch,increment,onSnapshot,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Paste the same Firebase web app config as index.html
+const cfg={apiKey:"AIzaSyAz6WmwoIvoQVC9cQyN3AYIUvm8536ZeaI",authDomain:"super-seven-win.firebaseapp.com",projectId:"super-seven-win",storageBucket:"super-seven-win.firebasestorage.app",messagingSenderId:"1019069720233",appId:"1:1019069720233:web:59e61111c3300929a2ebb8"};
+const auth=getAuth(initializeApp(cfg)),db=getFirestore(auth.app);
+const $=i=>document.getElementById(i);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+$('go').onclick=async()=>{$('msg').textContent='';
+ try{await signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value)}catch(e){$('msg').textContent=e.message}};
+
+const tabs=[['dash','Dashboard'],['users','Users'],['game','Game'],['results','Results'],['points','Points'],['notes','Notifications'],['out','Log out']];
+$('nav').innerHTML=tabs.map(t=>`<a href="#${t[0]}" data-t="${t[0]}">${t[1]}</a>`).join('');
+const show=()=>{const h=(location.hash||'#dash').slice(1);
+ if(h==='out'){signOut(auth);location.hash='dash';return}
+ tabs.slice(0,-1).forEach(t=>$(t[0]).classList.toggle('hide',t[0]!==h));
+ document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===h));
+ if(h==='dash')stats();if(h==='users')users();if(h==='results')results()};
+addEventListener('hashchange',show);
+
+onAuthStateChanged(auth,async u=>{
+ let ok=false;
+ if(u){try{ok=(await getDoc(doc(db,'admins',u.uid))).exists()}catch{}
+  if(!ok){$('msg').textContent='This account is not an admin.';signOut(auth)}}
+ $('login').classList.toggle('hide',ok);$('app').classList.toggle('hide',!ok);
+ if(ok)show()});
+
+async function stats(){const c=collection(db,'users'),n=q=>getCountFromServer(q).then(s=>s.data().count);
+ $('cu').textContent=await n(c);$('ca').textContent=await n(query(c,where('status','==','active')));$('cr').textContent=await n(collection(db,'rounds'))}
+
+async function users(){const s=await getDocs(query(collection(db,'users'),orderBy('balance','desc'),limit(100)));
+ $('ut').innerHTML='<tr><th>Name</th><th>Points</th><th>Status</th><th>Actions</th></tr>'+s.docs.map(d=>{const x=d.data();
+  return `<tr><td>${esc(x.name)}<br><span class="mu">${d.id}</span></td><td>${x.balance}</td><td>${x.status}</td>
+  <td><button data-u="${d.id}" data-a="st" data-s="${x.status}">${x.status==='active'?'Block':'Unblock'}</button>
+  <button data-u="${d.id}" data-a="+">+1000</button><button data-u="${d.id}" data-a="-">-1000</button></td></tr>`}).join('')}
+$('ut').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const r=doc(db,'users',b.dataset.u);
+ if(b.dataset.a==='st')await updateDoc(r,{status:b.dataset.s==='active'?'blocked':'active'});
+ else await updateDoc(r,{balance:increment(b.dataset.a==='+'?1000:-1000)});users()};
+
+async function results(){const s=await getDocs(query(collection(db,'rounds'),orderBy('round','desc'),limit(50)));
+ $('rt').innerHTML='<tr><th>Round</th><th>Result</th></tr>'+s.docs.map(d=>`<tr><td>#${d.data().round}</td><td><span class="dot ${d.data().result}"></span> ${d.data().result}</td></tr>`).join('')}
+
+// notifications
+$('np').onclick=async()=>{const t=$('nt').value.trim();if(!t)return;
+ await addDoc(collection(db,'notifications'),{title:t,body:$('nb').value.trim(),at:serverTimestamp()});
+ $('nt').value=$('nb').value='';$('nm').textContent='Sent.'};
+
+// round engine
+let on=false,last=Math.floor(Date.now()/30000);
+$('tog').onclick=()=>{on=!on;last=Math.floor(Date.now()/30000);$('gs').textContent=on?'Running':'Stopped';$('tog').textContent=on?'Stop rounds':'Start rounds'};
+async function settle(r){
+ const rr=doc(db,'rounds',String(r));if((await getDoc(rr)).exists())return;
+ const x=Math.random(),result=x<.45?'red':x<.9?'green':'violet';
+ await setDoc(rr,{round:r,result,at:serverTimestamp()});
+ const s=await getDocs(query(collection(db,'bets'),where('round','==',r)));
+ for(const d of s.docs){const b=d.data();if(b.status!=='open')continue;
+  const win=b.choice===result,pay=win?Math.floor(b.amount*(result==='violet'?4.5:1.9)):0,w=writeBatch(db);
+  w.update(d.ref,{status:win?'won':'lost',payout:pay});
+  if(win)w.update(doc(db,'users',b.uid),{balance:increment(pay)});
+  await w.commit()}}
+setInterval(async()=>{const n=Date.now(),cur=Math.floor(n/30000);
+ $('cur').textContent=cur;$('left').textContent=30-Math.floor((n%30000)/1000);
+ if(!on||cur<=last)return;const from=last;last=cur;
+ for(let r=from;r<cur;r++){try{await settle(r)}catch(e){console.warn(e.message)}}},1000);
+</script>
+</body></html>
